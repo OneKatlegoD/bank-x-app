@@ -1,0 +1,10 @@
+{
+  "savingsAccountJoiningBonus": "400.00",
+  "savingsAccountCreditReward": "0.005",
+  "transactionalAccountPaymentsFee": "0.0005",
+  "bankZEndOfDayTransactionsFilePath": "eodTransactions/BankZEodReconTransactions.json"
+}
+
+
+
+

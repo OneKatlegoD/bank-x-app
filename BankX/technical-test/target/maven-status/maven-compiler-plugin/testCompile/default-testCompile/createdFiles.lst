@@ -1,0 +1,5 @@
+com\bankx\techtest\test\BankAccountTest.class
+com\bankx\techtest\test\BankXCurrentAccountTest.class
+com\bankx\techtest\test\BankXAccountServiceTest.class
+com\bankx\techtest\test\BankXSavingsAccountTest.class
+com\bankx\techtest\test\LinkedAccountsTest.class

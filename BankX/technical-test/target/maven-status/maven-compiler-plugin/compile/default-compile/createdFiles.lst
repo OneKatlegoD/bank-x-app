@@ -1,0 +1,13 @@
+com\bankx\techtest\Constants\Constants.class
+com\bankx\techtest\Domain\Account\LinkedAccounts.class
+com\bankx\techtest\Domain\Account\BankXCurrentAccount.class
+com\bankx\techtest\Domain\Account\BankXSavingsAccount.class
+com\bankx\techtest\Domain\Account\BankXTransactionalAccount.class
+com\bankx\techtest\Domain\Transaction\Transaction.class
+com\bankx\techtest\Configuration\BankAccountServiceConfiguration.class
+com\bankx\techtest\Domain\AccountHolder.class
+com\bankx\techtest\Service\AccountService.class
+com\bankx\techtest\Domain\Account\BankAccount.class
+com\bankx\techtest\Main.class
+com\bankx\techtest\Service\BankXAccountService.class
+com\bankx\techtest\Service\CustomerNotificationService.class

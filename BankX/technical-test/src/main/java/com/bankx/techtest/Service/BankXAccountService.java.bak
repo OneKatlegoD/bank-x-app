@@ -1,0 +1,254 @@
+package com.bankx.techtest.Service;
+
+import java.util.List;
+import java.util.ArrayList;
+import java.lang.Exception;
+import org.json.simple.JSONArray;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import java.io.FileReader;
+import java.io.FileNotFoundException;
+import java.io.IOException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
+import com.bankx.techtest.Domain.Account.BankXTransactionalAccount;
+import com.bankx.techtest.Domain.Account.BankXSavingsAccount;
+import com.bankx.techtest.Domain.Account.BankXCurrentAccount;
+import com.bankx.techtest.Domain.Account.LinkedAccounts;
+import com.bankx.techtest.Domain.AccountHolder;
+import com.bankx.techtest.Domain.Transaction.Transaction;
+import com.bankx.techtest.Constants.Constants;
+
+
+public class BankXAccountService implements AccountService {
+
+    private List<AccountHolder> customerList;
+    private List<LinkedAccounts> linkedAccountsList;
+    private float savingsAccountJoiningBonus;
+    private float savingsAccountCreditReward;
+    private float transactionalAccountPaymentsFee;
+    private String bankZEndOfDayTransactionsFilePath;
+
+    public BankXAccountService()
+    {
+        this.customerList = new ArrayList<>();
+        this.linkedAccountsList = new ArrayList<>();
+        this.savingsAccountJoiningBonus = 0f;
+        this.savingsAccountCreditReward = 0f;
+        this.transactionalAccountPaymentsFee = 0f;
+        this.bankZEndOfDayTransactionsFilePath = "";
+    }
+
+    public List<AccountHolder> getCustomerList() {
+        return customerList;
+    }
+
+    public List<LinkedAccounts> getLinkedAccountsList() {
+        return linkedAccountsList;
+    }
+
+    public float getSavingsAccountJoiningBonus() {
+        return savingsAccountJoiningBonus;
+    }
+
+    public void setSavingsAccountJoiningBonus(float savingsAccountJoiningBonus) {
+        this.savingsAccountJoiningBonus = savingsAccountJoiningBonus;
+    }
+
+    public float getSavingsAccountCreditReward() {
+        return savingsAccountCreditReward;
+    }
+
+    public void setSavingsAccountCreditReward(float savingsAccountCreditReward) {
+        this.savingsAccountCreditReward = savingsAccountCreditReward;
+    }
+
+    public float getTransactionalAccountPaymentsFee() {
+        return transactionalAccountPaymentsFee;
+    }
+
+    public void setTransactionalAccountPaymentsFee(float transactionalAccountPaymentsFee) {
+        this.transactionalAccountPaymentsFee = transactionalAccountPaymentsFee;
+    }
+
+    public String getBankZEndOfDayTransactionsFilePath() {
+        return bankZEndOfDayTransactionsFilePath;
+    }
+
+    public void setBankZEndOfDayTransactionsFilePath(String bankZEndOfDayTransactionsFilePath) {
+        this.bankZEndOfDayTransactionsFilePath = bankZEndOfDayTransactionsFilePath;
+    }
+
+    public void onboardNewCustomer(AccountHolder accountHolder, float savingsAccountOpeningBalance,
+                                   float currentAccountOpeningBalance, Long savingsAccId, Long currentAccId) throws Exception
+    {
+        if(accountHolder == null)
+            throw new Exception("BankXAccountService::onboardNewCustomer received null input");
+
+        try
+        {
+            BankXSavingsAccount savingsAcc = new BankXSavingsAccount();
+            savingsAcc.init();
+            savingsAcc.setAccountHolder(accountHolder);
+            savingsAcc.setAccountId(savingsAccId);
+            savingsAcc.setBalance(savingsAccountOpeningBalance);
+            savingsAcc.setJoiningBonus(savingsAccountJoiningBonus);
+            savingsAcc.setCreditReward(savingsAccountCreditReward);
+
+            BankXCurrentAccount currentAcc = new BankXCurrentAccount();
+            currentAcc.init();
+            currentAcc.setAccountHolder(accountHolder);
+            currentAcc.setAccountId(currentAccId);
+            currentAcc.setBalance(currentAccountOpeningBalance);
+            currentAcc.setPaymentsFee(transactionalAccountPaymentsFee);
+
+            LinkedAccounts linkedAccounts = new LinkedAccounts(accountHolder.getAccountHolderId(),
+                    savingsAcc, currentAcc);
+
+            linkedAccountsList.add(linkedAccounts);
+            customerList.add(accountHolder);
+				
+        }
+        catch (Exception e)
+        {
+            System.out.println("BankXAccountService::onboardNewCustomer() threw exception - "+e.getMessage());
+        }
+
+    }
+
+    public String doInterAccountTransfer(AccountHolder accountHolder, String fromAccount,float amount)
+    {
+        try
+        {
+            LinkedAccounts customerLinkedAccounts = findCustomerAccounts(accountHolder.getAccountHolderId());
+            if(fromAccount.compareTo(Constants.SAVINGS_ACCOUNT) == 0)
+                return customerLinkedAccounts.transferToCurrent(amount);
+            else if(fromAccount.compareTo(Constants.CURRENT_ACCOUNT) == 0)
+                return customerLinkedAccounts.transferToSavings(amount);
+            else
+                return "Received undefined account type: "+ fromAccount;
+        }
+        catch (Exception e)
+        {
+            return "Failed to find linked accounts for customer with id: " + accountHolder.getAccountHolderId();
+        }
+    }
+    public String makePayment(AccountHolder accountHolder, float amount)
+    {
+        String notification;
+        try
+        {
+            LinkedAccounts customerLinkedAccounts = findCustomerAccounts(accountHolder.getAccountHolderId());
+            notification = customerLinkedAccounts.doCustomerPayment(amount);
+        }
+        catch (Exception e)
+        {
+            return "Failed to find linked accounts for customer with id: " + accountHolder.getAccountHolderId();
+        }
+        return notification;
+    }
+
+    public List<Transaction> provideCustomerTransactionHistory(AccountHolder accountHolder, String accountType)
+    {
+        List<Transaction> transactions = new ArrayList<>();
+        try
+        {
+            LinkedAccounts customerLinkedAccounts = findCustomerAccounts(accountHolder.getAccountHolderId());
+            if(accountType.compareTo(Constants.SAVINGS_ACCOUNT) == 0)
+                transactions = customerLinkedAccounts.getSavingsAccount().getTransactionHistory();
+            else if(accountType.compareTo(Constants.CURRENT_ACCOUNT) == 0)
+                transactions = customerLinkedAccounts.getCurrentAccount().getTransactionHistory();
+        }
+        catch (Exception e)
+        {
+            return null;
+        }
+        return transactions;
+    }
+
+    public String doBankZImmidiateTransactions(List<Transaction> transactions)
+    {
+        return null;
+    }
+    public void doBankZEodTransactions()
+    {
+        List<Transaction> eodTransactions = new ArrayList<>();
+
+        try
+        {
+            eodTransactions = loadEodTransactions();
+	       for(Transaction transaction: eodTransactions)
+            {
+                String notification = "";
+                LinkedAccounts customerLinkedAccounts = findCustomerAccounts(transaction.getAccountHolderId());
+				if(customerLinkedAccounts == null)
+				{
+					System.out.println("Failed to find linked accounts for user with id: "+ transaction.getAccountHolderId());
+					continue;
+				}
+                
+				if(transaction.getAccountId().equals(customerLinkedAccounts.getSavingsAccount().getAccountId()))
+                {
+                    if(transaction.isCredit())
+                        notification = customerLinkedAccounts.getSavingsAccount().doCredit(transaction.getAmount(),true).toString();
+                    else
+                        notification = customerLinkedAccounts.getSavingsAccount().doDebit(transaction.getAmount(),true).toString();
+                }
+                else if(transaction.getAccountId().equals(customerLinkedAccounts.getCurrentAccount().getAccountId()))
+                {
+                    if(transaction.isCredit())
+                        notification = customerLinkedAccounts.getCurrentAccount().doCredit(transaction.getAmount(),true).toString();
+                    else
+                        notification = customerLinkedAccounts.getCurrentAccount().doDebit(transaction.getAmount(),true).toString();
+                }
+               // send out notification to customer
+                System.out.println(notification);
+            }
+        }
+        catch(Exception e)
+        {
+			System.out.println("doBankZEodTransactions exception: "+ e.getMessage());
+			return;
+        }
+    }
+
+    private LinkedAccounts findCustomerAccounts(Long accountHolderId)
+    {
+		
+		for(LinkedAccounts customerLinkedAccounts: linkedAccountsList)
+		{
+			if(customerLinkedAccounts.getAccountHolderId().equals(accountHolderId))
+				return customerLinkedAccounts;
+		}
+        return null;
+    }
+
+    private List<Transaction> loadEodTransactions() throws Exception
+    {
+        if(this.bankZEndOfDayTransactionsFilePath == null || this.bankZEndOfDayTransactionsFilePath.isEmpty())
+            throw new Exception("BankXAccountService::loadEodTransactions - received null or empty eod file path string");
+
+        List<Transaction> eofReconTransactions = new ArrayList<>();
+        ObjectMapper objectMapper = new ObjectMapper();
+        JSONParser jsonParser = new JSONParser();
+
+        try (FileReader reader = new FileReader(this.bankZEndOfDayTransactionsFilePath))
+        {
+            Object obj = jsonParser.parse(reader);
+            JSONObject jsonObject = (JSONObject) obj;
+
+            JSONArray eodReconTrans = (JSONArray) jsonObject.get("transactions");
+            for(Object transaction: eodReconTrans)
+            {
+                Transaction trans = objectMapper.convertValue(transaction, Transaction.class);
+                eofReconTransactions.add(trans);
+            }
+        } catch (Exception e) {
+            throw new Exception("BankXAccountService::loadEodTransactions() - exception reading in eod recon file");
+        }
+
+        return eofReconTransactions;
+
+    }
+}

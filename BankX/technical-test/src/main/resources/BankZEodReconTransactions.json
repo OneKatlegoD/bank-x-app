@@ -1,0 +1,9 @@
+{"transactions":[
+  {"immediate":true, "credit":true, "amount":"100.45","successful": true, "accountHolderId": 11111,"accountId": 123456, "onAccount": "" },
+  {"immediate":true, "credit":false, "amount":"250.80","successful": true, "accountHolderId": 22222,"accountId": 246811, "onAccount": "" },
+  {"immediate":true, "credit":false, "amount":"300.00","successful": true, "accountHolderId": 33333,"accountId": 123458, "onAccount": "" },
+  {"immediate":true, "credit":true, "amount":"4000.45","successful": true, "accountHolderId": 11111,"accountId": 246810, "onAccount": "" },
+  {"immediate":true, "credit":true, "amount":"1500.00","successful": true, "accountHolderId": 22222,"accountId": 123457, "onAccount": "" },
+  {"immediate":true, "credit":true, "amount":"300.45","successful": true, "accountHolderId": 11111,"accountId": 123456, "onAccount": "" },
+  {"immediate":true, "credit":false, "amount":"750.00","successful": true, "accountHolderId": 22222,"accountId": 123457, "onAccount": "" }
+]}
